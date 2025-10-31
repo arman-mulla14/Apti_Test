@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Aptitude Live - Registration</title>
+    <link rel="stylesheet" href="assets/css/styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <h1>Aptitude Live</h1>
+      <p class="subtitle">Group Registration</p>
+    </header>
+
+    <main class="container">
+      <form id="registrationForm" class="card">
+        <div class="field">
+          <label for="groupName">Group Name</label>
+          <input
+            type="text"
+            id="groupName"
+            name="groupName"
+            placeholder="Enter group name"
+            required
+          />
+        </div>
+
+        <div class="field">
+          <label>Members (min 4, max 6)</label>
+          <div id="membersContainer" class="members"></div>
+          <div class="row gap">
+            <button type="button" id="addMemberBtn" class="btn secondary">
+              Add Member
+            </button>
+            <button type="button" id="removeMemberBtn" class="btn ghost">
+              Remove Member
+            </button>
+          </div>
+          <p class="hint">
+            If you have only 1 member, enter admin password to proceed.
+          </p>
+        </div>
+
+        <div id="singleMemberGate" class="field hidden">
+          <label for="singleAdminPassword">Admin Password</label>
+          <input
+            type="password"
+            id="singleAdminPassword"
+            placeholder="Enter password for 1-member exception"
+          />
+          <p class="hint">
+            Password required only if registering a single student.
+          </p>
+        </div>
+
+        <div class="row end">
+          <button class="btn primary" type="submit">Proceed to Test</button>
+        </div>
+      </form>
+    </main>
+
+    <footer class="app-footer">
+      <a href="admin.html">Admin</a>
+    </footer>
+
+    <script src="assets/js/storage.js"></script>
+    <script src="assets/js/common.js"></script>
+    <script>
+      const MIN_MEMBERS = 4;
+      const MAX_MEMBERS = 6;
+      const EXCEPTION_PASSWORD = "Admin123";
+
+      const membersContainer = document.getElementById("membersContainer");
+      const addBtn = document.getElementById("addMemberBtn");
+      const removeBtn = document.getElementById("removeMemberBtn");
+      const form = document.getElementById("registrationForm");
+      const singleGate = document.getElementById("singleMemberGate");
+      const singlePass = document.getElementById("singleAdminPassword");
+
+      function renderMemberInputs(count) {
+        membersContainer.innerHTML = "";
+        for (let i = 0; i < count; i++) {
+          const wrapper = document.createElement("div");
+          wrapper.className = "member-row";
+          const input = document.createElement("input");
+          input.type = "text";
+          input.placeholder = `Member ${i + 1} full name`;
+          input.required = i < MIN_MEMBERS; // first 4 required by default
+          input.dataset.memberIndex = String(i);
+          wrapper.appendChild(input);
+          membersContainer.appendChild(wrapper);
+        }
+        toggleSingleGate();
+      }
+
+      function currentCount() {
+        return membersContainer.querySelectorAll("input").length;
+      }
+
+      function toggleSingleGate() {
+        const count = currentCount();
+        if (count === 1) {
+          singleGate.classList.remove("hidden");
+        } else {
+          singleGate.classList.add("hidden");
+          singlePass.value = "";
+        }
+      }
+
+      addBtn.addEventListener("click", () => {
+        const count = currentCount();
+        if (count < MAX_MEMBERS) {
+          renderMemberInputs(count + 1);
+        }
+      });
+
+      removeBtn.addEventListener("click", () => {
+        const count = currentCount();
+        if (count > 1) {
+          renderMemberInputs(count - 1);
+        }
+      });
+
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const groupName = document.getElementById("groupName").value.trim();
+        const names = Array.from(membersContainer.querySelectorAll("input"))
+          .map((i) => i.value.trim())
+          .filter((v) => v.length > 0);
+
+        if (!groupName) {
+          alert("Please enter a group name.");
+          return;
+        }
+
+        // Ensure password field is visible if we have 1 member
+        if (names.length === 1) {
+          singleGate.classList.remove("hidden");
+          const enteredPassword = (singlePass.value || "").trim();
+          if (!enteredPassword || enteredPassword !== EXCEPTION_PASSWORD) {
+            alert(
+              "Admin password required for single-student registration. Please enter the correct password."
+            );
+            singlePass.focus();
+            return;
+          }
+        } else if (names.length < MIN_MEMBERS || names.length > MAX_MEMBERS) {
+          alert(
+            `Please enter between ${MIN_MEMBERS} and ${MAX_MEMBERS} members.`
+          );
+          return;
+        }
+
+        const registration = {
+          groupName,
+          members: names,
+          registeredAt: new Date().toISOString(),
+        };
+
+        Storage.set("registration", registration);
+        // reset any previous test progress
+        Storage.remove("testSession");
+        window.location.href = "test.html";
+      });
+
+      // initialize with 4 inputs
+      renderMemberInputs(MIN_MEMBERS);
+    </script>
+  </body>
+  <script>
+    // Prevent back-forward cache issues when navigating back from test
+    window.onpageshow = function (event) {
+      if (event.persisted) {
+        window.location.reload();
+      }
+    };
+    Common.setTheme();
+  </script>
+</html>

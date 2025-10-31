@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Aptitude Live - Not Qualified</title>
+    <link rel="stylesheet" href="assets/css/styles.css" />
+  </head>
+  <body>
+    <header class="app-header danger">
+      <h1>Sorry, Not Qualified</h1>
+    </header>
+
+    <main class="container">
+      <section class="card">
+        <h2 id="groupName"></h2>
+        <p id="memberNames" class="muted"></p>
+        <div class="results-grid">
+          <div class="result-box">
+            <span>Attempted</span><strong id="attempted">0</strong>
+          </div>
+          <div class="result-box">
+            <span>Correct</span><strong id="correct">0</strong>
+          </div>
+          <div class="result-box">
+            <span>Score</span><strong id="score">0%</strong>
+          </div>
+          <div class="result-box">
+            <span>Total Time</span><strong id="duration">00:00</strong>
+          </div>
+        </div>
+        <div class="row gap">
+          <a class="btn primary" href="index.html">Try Again</a>
+          <a class="btn secondary" href="admin.html">Admin</a>
+        </div>
+      </section>
+    </main>
+
+    <script src="assets/js/storage.js"></script>
+    <script src="assets/js/common.js"></script>
+    <script>
+      Common.setTheme();
+      const reg = Storage.get("registration");
+      const sess = Storage.get("testSession");
+      if (!reg || !sess) {
+        window.location.href = "index.html";
+      }
+      document.getElementById("groupName").textContent = `${reg.groupName}`;
+      document.getElementById("memberNames").textContent =
+        reg.members.join(", ");
+      document.getElementById("attempted").textContent = String(
+        sess.attempted || 0
+      );
+      document.getElementById("correct").textContent = String(
+        sess.correct || 0
+      );
+      document.getElementById("score").textContent = `${Math.round(
+        (sess.correct / sess.total) * 100
+      )}%`;
+      document.getElementById("duration").textContent = Common.formatDuration(
+        sess.durationMs || 0
+      );
+    </script>
+  </body>
+</html>

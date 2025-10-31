@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Aptitude Live - Admin</title>
+    <link rel="stylesheet" href="assets/css/styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <h1>Admin Console</h1>
+      <p class="subtitle">Manage questions and settings</p>
+    </header>
+
+    <!-- Password Gate -->
+    <main class="container" id="passwordGate">
+      <div class="card" style="max-width: 400px; margin: 60px auto">
+        <h2 style="text-align: center; margin-bottom: 24px">🔒 Admin Access</h2>
+        <div class="field">
+          <label for="adminPassword">Enter Admin Password</label>
+          <input
+            type="password"
+            id="adminPassword"
+            placeholder="Enter password"
+            autofocus
+          />
+          <p
+            class="hint"
+            id="passwordError"
+            style="color: var(--danger); display: none"
+          >
+            ❌ Incorrect password. Please try again.
+          </p>
+        </div>
+        <div class="row end">
+          <button id="adminLoginBtn" class="btn primary">Access Admin</button>
+        </div>
+      </div>
+    </main>
+
+    <!-- Admin Content (Hidden Initially) -->
+    <main class="container" id="adminContent" style="display: none">
+      <!-- Dashboard Stats -->
+      <div class="admin-stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">📊</div>
+          <div class="stat-content">
+            <div class="stat-label">Total Questions</div>
+            <div class="stat-value" id="totalQuestionsStat">0</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">⏱️</div>
+          <div class="stat-content">
+            <div class="stat-label">Time Per Question</div>
+            <div class="stat-value" id="timePerQuestionStat">60s</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">✅</div>
+          <div class="stat-content">
+            <div class="stat-label">Pass Threshold</div>
+            <div class="stat-value">70%</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">👥</div>
+          <div class="stat-content">
+            <div class="stat-label">Group Size</div>
+            <div class="stat-value">4-6</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings Section -->
+      <section class="card admin-section">
+        <div class="section-header">
+          <h2>⚙️ Test Settings</h2>
+          <p class="section-description">
+            Configure test duration and question count
+          </p>
+        </div>
+        <div class="grid two">
+          <div class="field">
+            <label for="numQuestions">
+              Total Questions
+              <span class="field-hint">Number of questions in each test</span>
+            </label>
+            <input id="numQuestions" type="number" min="1" value="25" />
+          </div>
+          <div class="field">
+            <label for="secondsPerQuestion">
+              Seconds Per Question
+              <span class="field-hint">Time limit for each question</span>
+            </label>
+            <input id="secondsPerQuestion" type="number" min="5" value="60" />
+          </div>
+        </div>
+        <div class="row end">
+          <button id="saveSettingsBtn" class="btn primary">
+            💾 Save Settings
+          </button>
+        </div>
+      </section>
+
+      <!-- Questions Section -->
+      <section class="card admin-section">
+        <div class="section-header">
+          <h2>📝 Question Bank</h2>
+          <p class="section-description">Manage your aptitude test questions</p>
+        </div>
+
+        <!-- Search and Actions Bar -->
+        <div class="questions-toolbar">
+          <div class="search-box">
+            <input
+              type="text"
+              id="searchQuestions"
+              placeholder="🔍 Search questions..."
+            />
+          </div>
+          <div class="row gap wrap">
+            <button id="addQuestionBtn" class="btn secondary">
+              ➕ Add Question
+            </button>
+            <button id="saveQuestionsBtn" class="btn primary">
+              💾 Save All Questions
+            </button>
+            <button id="exportBtn" class="btn ghost">📥 Export JSON</button>
+            <label class="btn ghost file">
+              📤 Import JSON
+              <input id="importInput" type="file" accept="application/json" />
+            </label>
+          </div>
+        </div>
+
+        <div id="questionsList" class="q-list"></div>
+
+        <div id="noQuestionsMsg" class="empty-state" style="display: none">
+          <div class="empty-icon">📋</div>
+          <h3>No Questions Yet</h3>
+          <p>
+            Start by adding your first question using the "Add Question" button
+            above.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="app-footer" id="adminFooter" style="display: none">
+      <a href="index.html">🏠 Registration</a>
+      <a href="test.html">📝 Test</a>
+      <button
+        id="logoutBtn"
+        class="btn ghost"
+        style="border: none; background: transparent; color: var(--primary-700)"
+      >
+        🚪 Logout
+      </button>
+    </footer>
+
+    <script src="config/firebase.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+    <script src="assets/js/storage.js"></script>
+    <script src="assets/js/common.js"></script>
+    <script src="assets/js/admin.js"></script>
+    <script>
+      const ADMIN_PASSWORD = "Admin123";
+
+      // Check if already authenticated
+      const isAuthenticated = Storage.get("adminAuthenticated", false);
+
+      const passwordGate = document.getElementById("passwordGate");
+      const adminContent = document.getElementById("adminContent");
+      const adminFooter = document.getElementById("adminFooter");
+      const adminPasswordInput = document.getElementById("adminPassword");
+      const adminLoginBtn = document.getElementById("adminLoginBtn");
+      const passwordError = document.getElementById("passwordError");
+
+      function showAdminContent() {
+        passwordGate.style.display = "none";
+        adminContent.style.display = "block";
+        adminFooter.style.display = "flex";
+        Storage.set("adminAuthenticated", true);
+        Common.setTheme();
+        AdminPage.init();
+      }
+
+      function showPasswordGate() {
+        passwordGate.style.display = "block";
+        adminContent.style.display = "none";
+        adminFooter.style.display = "none";
+        adminPasswordInput.value = "";
+        adminPasswordInput.focus();
+        passwordError.style.display = "none";
+      }
+
+      function checkPassword() {
+        const enteredPassword = (adminPasswordInput.value || "").trim();
+        if (enteredPassword === ADMIN_PASSWORD) {
+          showAdminContent();
+        } else {
+          passwordError.style.display = "block";
+          adminPasswordInput.value = "";
+          adminPasswordInput.focus();
+          adminPasswordInput.style.borderColor = "var(--danger)";
+          setTimeout(() => {
+            adminPasswordInput.style.borderColor = "";
+          }, 2000);
+        }
+      }
+
+      // Enter key support
+      adminPasswordInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") {
+          checkPassword();
+        }
+      });
+
+      adminLoginBtn.addEventListener("click", checkPassword);
+
+      // Logout functionality
+      const logoutBtn = document.getElementById("logoutBtn");
+      if (logoutBtn) {
+        logoutBtn.addEventListener("click", () => {
+          Storage.remove("adminAuthenticated");
+          showPasswordGate();
+        });
+      }
+
+      // Initialize
+      Common.setTheme();
+      if (isAuthenticated) {
+        showAdminContent();
+      } else {
+        showPasswordGate();
+      }
+
+      // Clear auth on page close/refresh (optional - remove if you want session to persist)
+      window.addEventListener("beforeunload", () => {
+        // Uncomment next line if you want to require password on each visit
+        // Storage.remove('adminAuthenticated');
+      });
+    </script>
+  </body>
+</html>
